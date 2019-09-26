@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 const (
@@ -65,15 +66,16 @@ func InjectionCheck(param map[string][]string, object interface{}) (err error) {
 	)
 
 	for _, name = range p {
-		tt, _ := t.FieldByName(name)
+		tt, _ := t.Elem().FieldByName(name)
 		// 用户自定义的标签
-		tag = tt.Tag.Get(Inject)
+		tag, ok = tt.Tag.Lookup(Inject)
 
-		if len(tag) == 0 {
+		if len(tag) == 0 && !ok {
 			continue
 		}
 
-		vt := v.FieldByName(name)
+		vt := v.Elem().FieldByName(name)
+
 		isNotNull = strings.Contains(tag, NotNull)
 		isMaxLen = strings.Contains(tag, MaxLen)
 
@@ -103,7 +105,7 @@ func InjectionCheck(param map[string][]string, object interface{}) (err error) {
 					for _, l := range arr {
 						if strings.Contains(l, MaxLen) {
 							maxlen, _ = strconv.Atoi(strings.Split(l, equal)[1])
-							if s, o := save.(string); !o || len(s) > maxlen {
+							if s, o := save.(string); !o || utf8.RuneCountInString(s) > maxlen {
 								return errors.New("String length is too large ")
 							}
 							break
@@ -112,19 +114,17 @@ func InjectionCheck(param map[string][]string, object interface{}) (err error) {
 				}
 
 				// 正则校验
-				regu = tt.Tag.Get(Regular)
-				if len(regu) > 0 {
+				if regu, ok = tt.Tag.Lookup(Regular); ok && len(regu) > 0 {
 					if tt.Type.Kind() == reflect.String {
-						if o, err := regexp.MatchString(regu, save.(string)); o || err != nil {
+						if o, err := regexp.MatchString(regu, save.(string)); !o || err != nil {
 							return errors.New("Regular match failed ")
 						}
 					}
 				}
 
 				// 时间格式校验
-				d = tt.Tag.Get(Date)
-				if strings.EqualFold(tt.Type.Name(), "time.Time") {
-					if s, o := save.(string); isNotNull && len(d) > 0 && o {
+				if d, ok = tt.Tag.Lookup(Date); ok && strings.Contains(tt.Type.Name(), "Time") {
+					if s, o := save.(string); len(d) > 0 && o {
 						save, err = time.Parse(strings.Trim(d, Space), s)
 						if err != nil {
 							return errors.New("Time format error ")
