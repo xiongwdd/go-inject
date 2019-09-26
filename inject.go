@@ -3,6 +3,7 @@ package inject
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -43,7 +44,7 @@ const (
 	equal     = "="
 )
 
-func InjectionCheck(param map[string][]string, object interface{}) (err error) {
+func InjectionCheck(param url.Values, object interface{}) (err error) {
 
 	if len(param) == 0 || object == nil {
 		return errors.New(fmt.Sprintf("The Parameter is empty"))
