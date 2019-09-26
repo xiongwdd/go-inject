@@ -32,6 +32,7 @@ const (
 	Date    = "date"
 	NotNull = "NotNull"
 	MaxLen  = "MaxLen"
+	Def     = "def"
 )
 
 const (
@@ -75,6 +76,12 @@ func InjectionCheck(param map[string][]string, object interface{}) (err error) {
 		}
 
 		vt := v.Elem().FieldByName(name)
+		if strings.Contains(tag, Def) {
+			// 如果可以有默认值
+			if v, o := param[name]; !o || len(v) == 0 || len(v[0]) == 0 {
+				param[name] = []string{getDef(tag)}
+			}
+		}
 
 		isNotNull = strings.Contains(tag, NotNull)
 		isMaxLen = strings.Contains(tag, MaxLen)
@@ -145,9 +152,20 @@ func InjectionCheck(param map[string][]string, object interface{}) (err error) {
 			if isNotNull {
 				return errors.New("bad request")
 			}
+
 		}
 	}
 	return
+}
+
+func getDef(s string) string {
+	arr := strings.Split(s, comma)
+	for _, l := range arr {
+		if strings.Contains(l, Def) {
+			return strings.Split(l, equal)[1]
+		}
+	}
+	return ""
 }
 
 func getFieldValue(kind reflect.Kind, value string) (save interface{}, err error) {
@@ -190,7 +208,7 @@ func getFieldName(structName interface{}) []string {
 	fieldNum := t.NumField()
 	result := make([]string, 0, fieldNum)
 	for i := 0; i < fieldNum; i++ {
-		result = append(result, t.Field(i).Name)
+		result = append(result, strings.ToLower(t.Field(i).Name))
 	}
 	return result
 }

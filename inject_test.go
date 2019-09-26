@@ -45,10 +45,10 @@ type FriendSave struct {
 }
 
 var arr = []map[string][]string{{
-	"OrgUid":     {"10001"},
-	"Uid":        {"20001"},
-	"LUid":       {"30001"},
-	"LoUid":      {"40001"},
+	"orgUid":     {"10001"},
+	"uid":        {"20001"},
+	"luid":       {"30001"},
+	"louid":      {"40001"},
 	"Context":    {"小于5"},
 	"CreateTime": {"2019-09-26 18:03:01"},
 	"Tel":        {"18571702046"},
