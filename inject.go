@@ -1,7 +1,7 @@
 // golang 基于tag解释的自动注入
 // author xiongwdd
 // email  xiongwd.2046@gmail.com
-// 
+//
 
 package inject
 
@@ -102,6 +102,7 @@ func baseInject(param1 url.Values, param2 map[string]string, object interface{} 
 
 		vt := v.Elem().FieldByName(name)
 
+		name = strings.ToLower(name)
 		if strings.Contains(toUp, Def) {
 			// 如果可以有默认值
 			switch isVersion {
@@ -125,8 +126,11 @@ func baseInject(param1 url.Values, param2 map[string]string, object interface{} 
 		//
 		switch isVersion {
 		case ONE:
-			values, ok = param1[name]
-			value = values[0]
+			if values, ok = param1[name]; ok && len(values) > 0 {
+				value = values[0]
+			} else {
+				value = ""
+			}
 		case TWO:
 			value , ok = param2[name]
 		default:
@@ -254,7 +258,7 @@ func getFieldName(structName interface{}) []string {
 	fieldNum := t.NumField()
 	result := make([]string, 0, fieldNum)
 	for i := 0; i < fieldNum; i++ {
-		result = append(result, strings.ToLower(t.Field(i).Name))
+		result = append(result, t.Field(i).Name)
 	}
 	return result
 }
