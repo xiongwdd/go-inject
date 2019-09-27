@@ -1,3 +1,8 @@
+// golang 基于tag解释的自动注入
+// author xiongwdd
+// email  xiongwd.2046@gmail.com
+// 
+
 package inject
 
 import (
@@ -31,9 +36,9 @@ const (
 	Inject  = "inject"
 	Regular = "regular"
 	Date    = "date"
-	NotNull = "NotNull"
-	MaxLen  = "MaxLen"
-	Def     = "def"
+	NotNull = "NOTNULL"
+	MaxLen  = "MAXLEN"
+	Def     = "DEF"
 )
 
 const (
@@ -44,9 +49,27 @@ const (
 	equal     = "="
 )
 
+const (
+	ONE = 1 + iota
+	TWO
+	THREE
+	FOUR
+	FIVE
+	SIX
+)
+
+func InjectionCheckTwo(param map[string]string, object interface{}) (err error) {
+
+	return baseInject(nil,param,object,TWO)
+}
+
 func InjectionCheck(param url.Values, object interface{}) (err error) {
 
-	if len(param) == 0 || object == nil {
+	return baseInject(param,nil,object,ONE)
+}
+func baseInject(param1 url.Values, param2 map[string]string, object interface{} ,isVersion int) (err error) {
+
+	if (len(param1) == 0 && len(param2) == 0) || object == nil {
 		return errors.New(fmt.Sprintf("The Parameter is empty"))
 	}
 
@@ -71,31 +94,53 @@ func InjectionCheck(param url.Values, object interface{}) (err error) {
 		tt, _ := t.Elem().FieldByName(name)
 		// 用户自定义的标签
 		tag, ok = tt.Tag.Lookup(Inject)
+		toUp := strings.ToUpper(tag)
 
 		if len(tag) == 0 && !ok {
 			continue
 		}
 
 		vt := v.Elem().FieldByName(name)
-		if strings.Contains(tag, Def) {
+
+		if strings.Contains(toUp, Def) {
 			// 如果可以有默认值
-			if v, o := param[name]; !o || len(v) == 0 || len(v[0]) == 0 {
-				param[name] = []string{getDef(tag)}
+			switch isVersion {
+			case ONE:
+				if v, o := param1[name]; !o || len(v) == 0 || len(v[0]) == 0 {
+					param1[name] = []string{getDef(tag)}
+				}
+			case TWO:
+				if v, o := param2[name]; !o || len(v) == 0 {
+					param2[name] = getDef(tag)
+				}
+			default:
+				return errors.New("inject version error")
+			
 			}
 		}
 
-		isNotNull = strings.Contains(tag, NotNull)
-		isMaxLen = strings.Contains(tag, MaxLen)
+		isNotNull = strings.Contains(toUp, NotNull)
+		isMaxLen = strings.Contains(toUp, MaxLen)
 
-		if values, ok = param[name]; ok {
+		//
+		switch isVersion {
+		case ONE:
+			values, ok = param1[name]
+			value = values[0]
+		case TWO:
+			value , ok = param2[name]
+		default:
+			return errors.New("inject version error")
+		}
+
+		if ok {
 			if isNotNull {
-				if len(values) == 0 || len(values[0]) == 0 {
+				if len(value) == 0 {
 					return errors.New("bad request")
 				}
 			}
 
-			value = values[0]
-			// 获取到值,其他类型的
+			// 获取到值类型
 			save, err = getFieldValue(tt.Type.Kind(), value)
 			if err != nil {
 				if isNotNull {
@@ -106,12 +151,13 @@ func InjectionCheck(param url.Values, object interface{}) (err error) {
 				}
 			}
 
+			// 是否可以设置值
 			if vt.CanSet() {
 				// 长度校验
 				if isMaxLen {
 					arr := strings.Split(tag, comma)
 					for _, l := range arr {
-						if strings.Contains(l, MaxLen) {
+						if strings.Contains(strings.ToUpper(l), MaxLen) {
 							maxlen, _ = strconv.Atoi(strings.Split(l, equal)[1])
 							if s, o := save.(string); !o || utf8.RuneCountInString(s) > maxlen {
 								return errors.New("String length is too large ")
@@ -158,7 +204,6 @@ func InjectionCheck(param url.Values, object interface{}) (err error) {
 	}
 	return
 }
-
 func getDef(s string) string {
 	arr := strings.Split(s, comma)
 	for _, l := range arr {
