@@ -8,7 +8,6 @@ package inject
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -63,11 +62,11 @@ func InjectionCheckTwo(param map[string]string, object interface{}) (err error) 
 	return baseInject(nil,param,object,TWO)
 }
 
-func InjectionCheck(param url.Values, object interface{}) (err error) {
+func InjectionCheck(param map[string][]string, object interface{}) (err error) {
 
 	return baseInject(param,nil,object,ONE)
 }
-func baseInject(param1 url.Values, param2 map[string]string, object interface{} ,isVersion int) (err error) {
+func baseInject(param1 map[string][]string, param2 map[string]string, object interface{} ,isVersion int) (err error) {
 
 	if (len(param1) == 0 && len(param2) == 0) || object == nil {
 		return errors.New(fmt.Sprintf("The Parameter is empty"))
