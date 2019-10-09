@@ -108,6 +108,8 @@ func baseInject(param1 map[string][]string, param2 map[string]string, object int
 			case ONE:
 				if v, o := param1[name]; !o || len(v) == 0 || len(v[0]) == 0 {
 					param1[name] = []string{getDef(tag)}
+				} else if v, o := param1[strings.Title(name)]; !o || len(v) == 0 || len(v[0]) == 0 {
+					param1[strings.Title(name)] = []string{getDef(tag)}
 				}
 			case TWO:
 				if v, o := param2[name]; !o || len(v) == 0 {
@@ -126,6 +128,8 @@ func baseInject(param1 map[string][]string, param2 map[string]string, object int
 		switch isVersion {
 		case ONE:
 			if values, ok = param1[name]; ok && len(values) > 0 {
+				value = values[0]
+			}else if values, ok = param1[strings.Title(name)]; ok && len(values) > 0 {
 				value = values[0]
 			} else {
 				value = ""
